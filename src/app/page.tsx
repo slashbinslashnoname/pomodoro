@@ -1,3 +1,5 @@
+"use client";
+
 import { PomodoroTimer } from '@/components/pomodoro-timer';
 import { Toolbar } from '@/components/toolbar';
 
