@@ -33,7 +33,7 @@ export function PomodoroTimer() {
   const [isMounted, setIsMounted] = useState(false);
 
   // Tous les useRef
-  const workerRef = useRef<Worker>(new Worker(new URL('../lib/timer.worker.ts', import.meta.url)));
+  const workerRef = useRef<Worker | null>(null);
   const hasShownProgressNotification = useRef(false);
   const currentSessionStart = useRef<Date>(new Date());
   const { toast } = useToast();
@@ -93,24 +93,26 @@ export function PomodoroTimer() {
   }, [timerState, workDuration, breakDuration, toast, sendNotification]);
   
   useEffect(() => {
-    workerRef.current = new Worker(new URL('../lib/timer.worker.ts', import.meta.url));
-    
-    workerRef.current.onmessage = (e) => {
-      const { type, payload } = e.data;
+    if (typeof window !== 'undefined') {
+      workerRef.current = new Worker(new URL('../lib/timer.worker.ts', import.meta.url));
       
-      switch (type) {
-        case 'TICK':
-          setTimeLeft(payload);
-          break;
-        case 'COMPLETE':
-          handleSessionComplete();
-          break;
-      }
-    };
+      workerRef.current.onmessage = (e) => {
+        const { type, payload } = e.data;
+        
+        switch (type) {
+          case 'TICK':
+            setTimeLeft(payload);
+            break;
+          case 'COMPLETE':
+            handleSessionComplete();
+            break;
+        }
+      };
 
-    return () => {
-      workerRef.current?.terminate();
-    };
+      return () => {
+        workerRef.current?.terminate();
+      };
+    }
   }, [handleSessionComplete]);
 
   const requestNotificationPermission = useCallback(async () => {
