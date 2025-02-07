@@ -29,6 +29,7 @@ export function PomodoroTimer() {
   const [timerState, setTimerState] = useState<TimerState>('work');
   const [status, setStatus] = useState<TimerStatus>('idle');
   const [isMounted, setIsMounted] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useLocalStorage('notificationsEnabled', false);
 
   // Tous les useRef
   const workerRef = useRef<Worker | null>(null);
@@ -49,45 +50,47 @@ export function PomodoroTimer() {
   };
 
   // 2. Tous les useCallback
-  const sendNotification = useCallback((title: string, body: string) => {
-  
-
-    // Vérifier la permission des notifications
+  const requestNotificationPermission = useCallback(async () => {
     if ('Notification' in window) {
-      const permission = Notification.permission;
-      console.log('Notification permission:', permission);
-      
-      if (permission === 'granted') {
-        try {
-          // Créer une nouvelle notification
-          const notification = new window.Notification(title, {
-            body,
-            icon: '/bell.png',
-            tag: 'pomodoro-notification',
-            requireInteraction: true // La notification reste jusqu'à ce que l'utilisateur interagisse
-          });
+      const permission = await Notification.requestPermission();
+      setNotificationsEnabled(permission === 'granted');
+      return permission === 'granted';
+    }
+    return false;
+  }, [setNotificationsEnabled]);
 
-          // Ajouter un gestionnaire de clic
-          notification.onclick = () => {
-            window.focus(); // Focus sur la fenêtre quand on clique sur la notification
-            notification.close();
-          };
-        } catch (error) {
-          console.error('Error creating notification:', error);
-        }
+  const sendNotification = useCallback((title: string, body: string) => {
+    if (!notificationsEnabled) {
+      toast({
+        title,
+        description: body,
+      });
+      return;
+    }
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const notification = new window.Notification(title, {
+          body,
+          icon: '/bell.png',
+          tag: 'pomodoro-notification',
+          requireInteraction: true
+        });
+
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      } catch (error) {
+        console.error('Error creating notification:', error);
       }
     }
 
-    // Toujours afficher le toast
     toast({
       title,
       description: body,
     });
-  }, [ toast]);
-
-  useEffect(() => {
-    sendNotification('Test', 'Test');
-  }, [sendNotification]);
+  }, [notificationsEnabled, toast]);
 
   const handleSessionComplete = useCallback(() => {
     const newState = timerState === 'work' ? 'break' : 'work';
@@ -262,10 +265,7 @@ export function PomodoroTimer() {
             {timerState === 'work' ? 'Work Session' : 'Break Time'}
           </CardTitle>
           <div className="flex gap-2">
-            <SessionHistory 
-              sessions={sessions} 
-              onClearHistory={() => setSessions([])} 
-            />
+            <SessionHistory sessions={sessions} onClearHistory={() => setSessions([])} />
             <SettingsDialog
               workDuration={workDuration}
               breakDuration={breakDuration}
