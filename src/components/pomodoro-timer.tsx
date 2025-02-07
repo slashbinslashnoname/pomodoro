@@ -25,11 +25,9 @@ export function PomodoroTimer() {
   const [workDuration, setWorkDuration] = useLocalStorage('workDuration', 25 * 60);
   const [breakDuration, setBreakDuration] = useLocalStorage('breakDuration', 5 * 60);
   const [sessions, setSessions] = useLocalStorage<SessionRecord[]>('sessions', []);
-  const [notificationsEnabled, setNotificationsEnabled] = useLocalStorage('notificationsEnabled', true);
   const [timeLeft, setTimeLeft] = useState(workDuration);
   const [timerState, setTimerState] = useState<TimerState>('work');
   const [status, setStatus] = useState<TimerStatus>('idle');
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [isMounted, setIsMounted] = useState(false);
 
   // Tous les useRef
@@ -38,19 +36,58 @@ export function PomodoroTimer() {
   const currentSessionStart = useRef<Date>(new Date());
   const { toast } = useToast();
 
+
+  const startTimer = () => {
+    setStatus('running');
+    if (!currentSessionStart.current) {
+      currentSessionStart.current = new Date();
+    }
+    workerRef.current?.postMessage({
+      type: 'START',
+      payload: { duration: timeLeft }
+    });
+  };
+
   // 2. Tous les useCallback
   const sendNotification = useCallback((title: string, body: string) => {
-    if (notificationPermission === 'granted' && notificationsEnabled) {
-      new Notification(title, {
-        body,
-        icon: '/icon.png'
-      });
-      toast({
-        title,
-        description: body,
-      });
+  
+
+    // Vérifier la permission des notifications
+    if ('Notification' in window) {
+      const permission = Notification.permission;
+      console.log('Notification permission:', permission);
+      
+      if (permission === 'granted') {
+        try {
+          // Créer une nouvelle notification
+          const notification = new window.Notification(title, {
+            body,
+            icon: '/bell.png',
+            tag: 'pomodoro-notification',
+            requireInteraction: true // La notification reste jusqu'à ce que l'utilisateur interagisse
+          });
+
+          // Ajouter un gestionnaire de clic
+          notification.onclick = () => {
+            window.focus(); // Focus sur la fenêtre quand on clique sur la notification
+            notification.close();
+          };
+        } catch (error) {
+          console.error('Error creating notification:', error);
+        }
+      }
     }
-  }, [notificationPermission, notificationsEnabled, toast]);
+
+    // Toujours afficher le toast
+    toast({
+      title,
+      description: body,
+    });
+  }, [ toast]);
+
+  useEffect(() => {
+    sendNotification('Test', 'Test');
+  }, [sendNotification]);
 
   const handleSessionComplete = useCallback(() => {
     const newState = timerState === 'work' ? 'break' : 'work';
@@ -115,15 +152,6 @@ export function PomodoroTimer() {
     }
   }, [handleSessionComplete]);
 
-  const requestNotificationPermission = useCallback(async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      return permission === 'granted';
-    }
-    return false;
-  }, []);
-
   const handleWorkDurationChange = useCallback((newDuration: number) => {
     setWorkDuration(newDuration);
     if (timerState === 'work' && status === 'idle') {
@@ -144,25 +172,7 @@ export function PomodoroTimer() {
     setTimeLeft(workDuration);
   }, [workDuration]);
 
-  // Vérification initiale des notifications (une seule fois)
-  useEffect(() => {
-    if ('Notification' in window) {
-      Notification.requestPermission().then(permission => {
-        setNotificationPermission(permission);
-        if (permission !== 'granted') {
-          setNotificationsEnabled(false);
-        }
-      });
-    }
-  }, []); // Dépendances vides pour n'exécuter qu'au montage
-
-  // Surveiller les changements de notificationsEnabled
-  useEffect(() => {
-    if (notificationsEnabled && notificationPermission !== 'granted') {
-      requestNotificationPermission();
-    }
-  }, [notificationsEnabled, requestNotificationPermission, notificationPermission]);
-
+  // Ajouter l'effet pour les notifications
   useEffect(() => {
     // Notification 5 secondes avant la fin de la pause
     if (timerState === 'break' && timeLeft === 5 && status === 'running') {
@@ -203,17 +213,7 @@ export function PomodoroTimer() {
   }
 
   // 5. Fonctions régulières
-  const startTimer = () => {
-    setStatus('running');
-    if (!currentSessionStart.current) {
-      currentSessionStart.current = new Date();
-    }
-    workerRef.current?.postMessage({
-      type: 'START',
-      payload: { duration: timeLeft }
-    });
-  };
-
+  
   const pauseTimer = () => {
     setStatus('paused');
     workerRef.current?.postMessage({ type: 'PAUSE' });
@@ -262,7 +262,10 @@ export function PomodoroTimer() {
             {timerState === 'work' ? 'Work Session' : 'Break Time'}
           </CardTitle>
           <div className="flex gap-2">
-            <SessionHistory sessions={sessions} />
+            <SessionHistory 
+              sessions={sessions} 
+              onClearHistory={() => setSessions([])} 
+            />
             <SettingsDialog
               workDuration={workDuration}
               breakDuration={breakDuration}

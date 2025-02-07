@@ -9,21 +9,24 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { History } from "lucide-react";
+import { History, Trash2 } from "lucide-react";
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface SessionRecord {
   type: 'work' | 'break';
-  startTime: string | Date;
-  endTime: string | Date;
+  startTime: Date;
+  endTime: Date;
   duration: number;
   completed: boolean;
 }
 
 interface SessionHistoryProps {
   sessions: SessionRecord[];
+  onClearHistory?: () => void;
 }
 
-export function SessionHistory({ sessions }: SessionHistoryProps) {
+export function SessionHistory({ sessions, onClearHistory }: SessionHistoryProps) {
   const formatTime = (date: string | Date) => {
     const dateObj = date instanceof Date ? date : new Date(date);
     return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -47,7 +50,7 @@ export function SessionHistory({ sessions }: SessionHistoryProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button variant="outline" size="icon" title="Historique des sessions">
           <History className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -93,6 +96,16 @@ export function SessionHistory({ sessions }: SessionHistoryProps) {
             </div>
           </ScrollArea>
         </div>
+        {sessions.length > 0 && (
+          <Button 
+            variant="destructive" 
+            size="icon"
+            onClick={onClearHistory}
+            title="Effacer l'historique"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </DialogContent>
     </Dialog>
   );
