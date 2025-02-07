@@ -27,4 +27,5 @@ Shadcn UI
 ## Idées futures
 - [x] Thèmes personnalisables (mode sombre / clair).
 - [ ] Synchronisation avec un calendrier pour planifier les sessions.
-- [ ] Intégration avec d'autres outils de gestion de temps ou de notifications (ex : Slack). 
+- [ ] Intégration avec d'autres outils de gestion de temps ou de notifications (ex : Slack).
+- [ ] Amélioration du SEO (balises sémantiques, métadonnées). 
