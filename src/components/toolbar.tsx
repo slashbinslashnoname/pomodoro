@@ -9,15 +9,27 @@ import { useCallback, useState, useEffect } from 'react';
 export function Toolbar() {
   const [mounted, setMounted] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useLocalStorage('notificationsEnabled', true);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const { toast } = useToast();
 
   const requestNotificationPermission = useCallback(async () => {
     if ('Notification' in window) {
       const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
       return permission === 'granted';
     }
     return false;
   }, []);
+
+  // Vérifier l'état initial des notifications
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+      if (Notification.permission !== 'granted') {
+        setNotificationsEnabled(false);
+      }
+    }
+  }, [setNotificationsEnabled]);
 
   useEffect(() => {
     setMounted(true);
