@@ -33,9 +33,9 @@ export function PomodoroTimer() {
   const [isMounted, setIsMounted] = useState(false);
 
   // Tous les useRef
-  const workerRef = useRef<Worker>();
+  const workerRef = useRef<Worker>(new Worker(new URL('../lib/timer.worker.ts', import.meta.url)));
   const hasShownProgressNotification = useRef(false);
-  const currentSessionStart = useRef<Date>();
+  const currentSessionStart = useRef<Date>(new Date());
   const { toast } = useToast();
 
   // 2. Tous les useCallback
@@ -69,7 +69,7 @@ export function PomodoroTimer() {
     setTimerState(newState);
     setStatus('idle');
     setTimeLeft(newState === 'work' ? workDuration : breakDuration);
-    currentSessionStart.current = undefined;
+    currentSessionStart.current = new Date();
     
     // Notification de fin de session
     sendNotification(
@@ -127,14 +127,14 @@ export function PomodoroTimer() {
     if (timerState === 'work' && status === 'idle') {
       setTimeLeft(newDuration);
     }
-  }, [timerState, status]);
+  }, [timerState, status, setWorkDuration]);
 
   const handleBreakDurationChange = useCallback((newDuration: number) => {
     setBreakDuration(newDuration);
     if (timerState === 'break' && status === 'idle') {
       setTimeLeft(newDuration);
     }
-  }, [timerState, status]);
+  }, [timerState, status, setBreakDuration]);
 
   // 3. Tous les useEffect
   useEffect(() => {
@@ -159,7 +159,7 @@ export function PomodoroTimer() {
     if (notificationsEnabled && notificationPermission !== 'granted') {
       requestNotificationPermission();
     }
-  }, [notificationsEnabled, requestNotificationPermission]);
+  }, [notificationsEnabled, requestNotificationPermission, notificationPermission]);
 
   useEffect(() => {
     // Notification 5 secondes avant la fin de la pause
@@ -201,33 +201,6 @@ export function PomodoroTimer() {
   }
 
   // 5. Fonctions régulières
-  const toggleNotifications = async () => {
-    if (!notificationsEnabled) {
-      // Si on active les notifications, on demande la permission
-      const granted = await requestNotificationPermission();
-      setNotificationsEnabled(granted);
-      if (granted) {
-        toast({
-          title: "Notifications activées",
-          description: "Vous recevrez des notifications pour les événements importants.",
-        });
-      } else {
-        toast({
-          title: "Notifications non autorisées",
-          description: "Veuillez autoriser les notifications dans les paramètres de votre navigateur.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      // Si on désactive les notifications
-      setNotificationsEnabled(false);
-      toast({
-        title: "Notifications désactivées",
-        description: "Vous ne recevrez plus de notifications.",
-      });
-    }
-  };
-
   const startTimer = () => {
     setStatus('running');
     if (!currentSessionStart.current) {
@@ -265,7 +238,7 @@ export function PomodoroTimer() {
       }, ...prev]);
     }
     resetTimer();
-    currentSessionStart.current = undefined;
+    currentSessionStart.current = new Date();
   };
 
   const formatTime = (seconds: number) => {

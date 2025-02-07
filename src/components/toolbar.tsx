@@ -4,21 +4,36 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 export function Toolbar() {
+  const [mounted, setMounted] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useLocalStorage('notificationsEnabled', true);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const { toast } = useToast();
 
   const requestNotificationPermission = useCallback(async () => {
     if ('Notification' in window) {
       const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
       return permission === 'granted';
     }
     return false;
   }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Rendu initial côté serveur
+  if (!mounted) {
+    return (
+      <div className="fixed top-4 right-4 flex gap-2">
+        <Button variant="outline" size="icon">
+          <span>🔕</span>
+        </Button>
+        <ThemeToggle />
+      </div>
+    );
+  }
 
   const toggleNotifications = async () => {
     if (!notificationsEnabled) {
