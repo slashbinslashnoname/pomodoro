@@ -5,6 +5,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useToast } from '@/hooks/use-toast';
+import { DisclaimerDialog } from "./disclaimer-dialog";
 
 export function Toolbar() {
   const [mounted, setMounted] = useState(false);
@@ -83,6 +84,7 @@ export function Toolbar() {
         {localNotificationsEnabled ? '🔔' : '🔕'}
       </Button>
       <ThemeToggle />
+      <DisclaimerDialog />
     </div>
   );
 } 
