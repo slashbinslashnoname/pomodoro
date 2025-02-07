@@ -14,6 +14,7 @@ export function Toolbar() {
 
   const requestNotificationPermission = useCallback(async () => {
     if ('Notification' in window) {
+      console.log(notificationPermission);
       const permission = await Notification.requestPermission();
       setNotificationPermission(permission);
       return permission === 'granted';
