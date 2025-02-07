@@ -49,16 +49,6 @@ export function PomodoroTimer() {
     });
   };
 
-  // 2. Tous les useCallback
-  const requestNotificationPermission = useCallback(async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      setNotificationsEnabled(permission === 'granted');
-      return permission === 'granted';
-    }
-    return false;
-  }, [setNotificationsEnabled]);
-
   const sendNotification = useCallback((title: string, body: string) => {
     if (!notificationsEnabled) {
       toast({
