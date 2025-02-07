@@ -8,10 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function Toolbar() {
   const [mounted, setMounted] = useState(false);
-  const [localNotificationsEnabled, setLocalNotificationsEnabled] = useState<boolean>(() => {
-    const storedValue = localStorage.getItem('notificationsEnabled');
-    return storedValue ? JSON.parse(storedValue) : false;
-  });
+  const [localNotificationsEnabled, setLocalNotificationsEnabled] = useLocalStorage('notificationsEnabled', false);
   const [ , setNotificationsEnabledLocalStorage ] = useLocalStorage('notificationsEnabled', false);
   const { toast } = useToast();
 
