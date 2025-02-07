@@ -11,49 +11,60 @@ export function Toolbar() {
   const [notificationsEnabled, setNotificationsEnabled] = useLocalStorage('notificationsEnabled', false);
   const { toast } = useToast();
 
-  const requestNotificationPermission = useCallback(async () => {
+  const handleNotificationClick = useCallback(async () => {
+    // Désactivation simple
+    if (notificationsEnabled) {
+      setNotificationsEnabled(false);
+      toast({
+        title: "Notifications désactivées",
+        description: "Vous ne recevrez plus de notifications.",
+      });
+      return;
+    }
+
+    // Activation avec demande de permission
     if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      setNotificationsEnabled(permission === 'granted');
-      if (permission === 'granted') {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          setNotificationsEnabled(true);
+          new window.Notification("Notifications activées", {
+            body: "Vous recevrez des notifications pour les événements importants.",
+            icon: '/bell.png'
+          });
+        } else {
+          toast({
+            title: "Notifications non autorisées",
+            description: "Veuillez autoriser les notifications dans les paramètres de votre navigateur.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('Error:', error);
         toast({
-          title: "Notifications activées",
-          description: "Vous recevrez des notifications pour les événements importants.",
-        });
-      } else {
-        toast({
-          title: "Notifications non autorisées",
-          description: "Veuillez autoriser les notifications dans les paramètres de votre navigateur.",
+          title: "Erreur",
+          description: "Une erreur est survenue lors de l'activation des notifications.",
           variant: "destructive",
         });
       }
-      return permission === 'granted';
     }
-    return false;
-  }, [setNotificationsEnabled, toast]);
+  }, [notificationsEnabled, setNotificationsEnabled, toast]);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if ('Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted');
+    }
+  }, [setNotificationsEnabled]);
 
-  // Rendu initial côté serveur
-  if (!mounted) {
-    return (
-      <div className="fixed top-4 right-4 flex gap-2">
-        <Button variant="outline" size="icon">
-          <span>🔕</span>
-        </Button>
-        <ThemeToggle />
-      </div>
-    );
-  }
+  if (!mounted) return null;
 
   return (
     <div className="fixed top-4 right-4 flex gap-2">
       <Button
         variant="outline"
         size="icon"
-        onClick={requestNotificationPermission}
+        onClick={handleNotificationClick}
         title={notificationsEnabled ? 'Désactiver les notifications' : 'Activer les notifications'}
       >
         {notificationsEnabled ? '🔔' : '🔕'}
