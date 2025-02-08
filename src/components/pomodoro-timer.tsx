@@ -135,15 +135,6 @@ export default function PomodoroTimer() {
     [handleDurationChange, setBreakDuration]
   );
 
-  useEffect(() => {
-    if (timerState === 'break' && time === 5 && status === 'running') {
-      sendNotification(
-        'Break ending soon!',
-        'Your break will end in 5 seconds. Get ready to work!'
-      );
-    }
-  }, [time, timerState, workDuration, breakDuration, status, sendNotification]);
-
   if (!isMounted) {
     return (
       <Card className="w-[350px]">
@@ -189,7 +180,9 @@ export default function PomodoroTimer() {
     <Card className="w-[350px]">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-center flex-1">Pomodoro Timer</CardTitle>
+          <CardTitle className="text-center flex-1">
+            {timerState === 'work' ? 'Work Session' : 'Break Time'}
+          </CardTitle>
           <div className="flex gap-2">
             <SessionHistory sessions={sessions} onClearHistory={() => setSessions([])} />
             <SettingsDialog
