@@ -11,7 +11,6 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useTimer } from '@/context/timer-context';
 import { SessionRecord } from '@/types';
 
-
 export default function PomodoroTimer() {
   const {
     time,

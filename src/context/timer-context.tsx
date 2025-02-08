@@ -17,15 +17,17 @@ interface TimerContextType {
     timerState: TimerState;
     workDuration: number;
     breakDuration: number;
+    currentTaskId: string | null;
     setTime: (time: number) => void;
     startTimer: () => void;
     pauseTimer: () => void;
-    resetTimer: () => void;
+    resetTimer: (duration?: number) => void;
     setWorkDuration: (duration: number) => void;
     setBreakDuration: (duration: number) => void;
     setStatus: (status: TimerStatus) => void;
     setTimerState: (timerState: TimerState) => void;
     setTimeState: React.Dispatch<React.SetStateAction<number>>;
+    setCurrentTaskId: React.Dispatch<React.SetStateAction<string | null>>;
     setIsRunning: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -43,6 +45,7 @@ export const TimerProvider = ({ children }: { children: React.ReactNode }) => {
     const [timerState, setTimerState] = useState<TimerState>('work');
     const [workDuration, setWorkDuration] = useLocalStorage('workDuration', 1500); // 25 minutes
     const [breakDuration, setBreakDuration] = useLocalStorage('breakDuration', 300); // 5 minutes
+    const [currentTaskId, setCurrentTaskId] = useState<string | null>(null); // État pour suivre la tâche en cours
     const workerRef = useRef<Worker | null>(null); // Ref for worker
 
     useEffect(() => {
@@ -97,7 +100,7 @@ export const TimerProvider = ({ children }: { children: React.ReactNode }) => {
             type: 'START',
             payload: { duration: time, timerState }
         });
-    }, [isRunning, status, time, timerState, setIsRunning, setStatus]);
+    }, [ time, timerState, setIsRunning, setStatus]);
 
     const pauseTimer = useCallback(() => {
         setIsRunning(false);
@@ -105,14 +108,14 @@ export const TimerProvider = ({ children }: { children: React.ReactNode }) => {
         workerRef.current?.postMessage({ type: 'PAUSE' });
     }, [setIsRunning, setStatus]);
 
-    const resetTimer = useCallback(() => {
+    const resetTimer = useCallback((duration?: number) => {
         setIsRunning(false);
         setStatus('idle');
         workerRef.current?.postMessage({
             type: 'RESET',
             payload: { duration: timerState === 'work' ? workDuration : breakDuration, timerState }
         });
-        setTimeState(timerState === 'work' ? workDuration : breakDuration);
+        setTimeState(duration || timerState === 'work' ? workDuration : breakDuration);
     }, [timerState, workDuration, breakDuration, setIsRunning, setStatus, setTimeState]);
 
     useEffect(() => {
@@ -126,6 +129,7 @@ export const TimerProvider = ({ children }: { children: React.ReactNode }) => {
         timerState,
         workDuration,
         breakDuration,
+        currentTaskId,
         setTime,
         startTimer,
         pauseTimer,
@@ -135,6 +139,7 @@ export const TimerProvider = ({ children }: { children: React.ReactNode }) => {
         setStatus,
         setTimerState,
         setTimeState,
+        setCurrentTaskId,
         setIsRunning,
     };
 

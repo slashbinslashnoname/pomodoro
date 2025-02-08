@@ -7,25 +7,55 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Badge } from "@/components/ui/badge"
-
+import { PlayIcon } from '@radix-ui/react-icons';
+import { PauseIcon } from '@radix-ui/react-icons';
+import { useTimer } from '@/context/timer-context';
 interface Task {
   id: string;
   text: string;
   completed: boolean;
   createdAt: Date;
   category?: string;
+  pomodoros?: number;
 }
 
-function SortableTask({ task, onToggle, onDelete }: {
+function SortableTask({ task, onToggle, onDelete, onStartTaskTimer, onPauseTaskTimer, isCurrentTask }: {
   task: Task;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onStartTaskTimer: (task: Task) => void;
+  onPauseTaskTimer: (task: Task) => void;
+  isCurrentTask: boolean;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div
       className="flex items-center justify-between p-4 border rounded-lg"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-center gap-2">
+
+        {isCurrentTask ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="p-0 hover:bg-accent mr-2"
+            onClick={() => onPauseTaskTimer(task)}
+          >
+            <PauseIcon className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="p-0 hover:bg-accent mr-2"
+            onClick={() => onStartTaskTimer(task)}
+          >
+            <PlayIcon className="h-4 w-4" />
+          </Button>
+        )}
         <Checkbox
           checked={task.completed}
           onCheckedChange={() => onToggle(task.id)}
@@ -40,6 +70,11 @@ function SortableTask({ task, onToggle, onDelete }: {
           >
             {task.category}
           </Badge>
+        )}
+        {task.pomodoros && (
+          <span className="ml-2 text-sm text-muted-foreground">
+            - {task.pomodoros} Pomodoros
+          </span>
         )}
       </div>
       <Button
@@ -59,6 +94,19 @@ function SortableTask({ task, onToggle, onDelete }: {
 }
 
 export default function TasksPage() {
+
+    const {
+        startTimer,
+        pauseTimer,
+        resetTimer,
+        workDuration,
+        setTime,
+        setStatus,
+        setTimerState,
+        setCurrentTaskId,
+        currentTaskId
+      } = useTimer();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
   const localStorageTasks = useLocalStorage<Task[]>('tasks', []);
@@ -75,11 +123,13 @@ export default function TasksPage() {
         completed: false,
         createdAt: new Date(),
         category: (document.getElementById('task-category') as HTMLInputElement)?.value.trim() || undefined,
+        pomodoros: parseInt((document.getElementById('task-pomodoros') as HTMLInputElement)?.value) || 1,
       };
       setTasks(prev => [newTask, ...prev]);
       localStorageTasks[1]([newTask, ...tasks]);
       setNewTaskText('');
       (document.getElementById('task-category') as HTMLInputElement).value = '';
+      (document.getElementById('task-pomodoros') as HTMLInputElement).value = '1';
     }
   };
 
@@ -96,7 +146,6 @@ export default function TasksPage() {
 
   const deleteTask = (taskId: string) => {
     console.log('deleteTask called for taskId:', taskId);
-    console.log('deleteTask taskId received:', taskId);
     setTasks(prevTasks => {
       console.log('Current tasks before deletion:', prevTasks);
       const updatedTasks = prevTasks.filter(task => task.id !== taskId);
@@ -111,6 +160,22 @@ export default function TasksPage() {
     if (e.key === 'Enter') {
       addTask();
     }
+  };
+
+  const handleStartTaskTimer = (task: Task) => {
+    console.log('Timer started for task:', task.text, workDuration);
+    resetTimer(workDuration);
+    setStatus('running');
+    setTimerState('work');
+    setTime(workDuration);
+    startTimer();
+    setCurrentTaskId(task.id);
+  };
+ 
+  const handlePauseTaskTimer = (task: Task) => {
+    pauseTimer();
+    setStatus('paused');
+    setCurrentTaskId(null);
   };
 
   return (
@@ -133,6 +198,14 @@ export default function TasksPage() {
               className="w-32 md:w-auto"
               id="task-category"
             />
+            <Input
+              placeholder="Pomodoros"
+              className="w-24 md:w-auto"
+              id="task-pomodoros"
+              type="number"
+              defaultValue={1}
+              min={1}
+            />
             <Button onClick={addTask}>Add</Button>
           </div>
 
@@ -146,6 +219,9 @@ export default function TasksPage() {
                   task={task}
                   onToggle={toggleTask}
                   onDelete={deleteTask}
+                  onStartTaskTimer={handleStartTaskTimer}
+                  onPauseTaskTimer={handlePauseTaskTimer}
+                  isCurrentTask={task.id === currentTaskId}
                 />
               ))
             )}
