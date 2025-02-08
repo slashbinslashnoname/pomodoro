@@ -62,6 +62,8 @@ export default function PomodoroTimer() {
         };
       } catch (error) {
         console.error('Error creating notification:', error);
+        console.error('Notification API availability:', 'Notification' in window); // Check if Notification API is available
+        console.error('Notification permission status:', Notification.permission); // Check permission status
       }
     }
     toast({
@@ -69,6 +71,25 @@ export default function PomodoroTimer() {
       description: body,
     });
   }, [toast]);
+
+  const requestNotificationPermission = useCallback(async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        console.log('Notification permission granted.');
+        setNotificationsEnabled(true); // Update local storage if granted
+      } else if (permission === 'denied') {
+        console.log('Notification permission denied.');
+        setNotificationsEnabled(false); // Update local storage if denied
+        toast({
+          title: 'Notifications Denied',
+          description: 'Please enable notifications in your browser settings to receive timer alerts.',
+        });
+      } else {
+        console.log('Notification permission default or prompt.');
+      }
+    }
+  }, [setNotificationsEnabled, toast]);
 
   const sendNotification = useCallback((title: string, body: string) => {
     if (!notificationsEnabled) {
@@ -107,7 +128,10 @@ export default function PomodoroTimer() {
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    if (notificationsEnabled && 'Notification' in window && Notification.permission !== 'granted') {
+      requestNotificationPermission(); // Request permission on mount if enabled in settings but not granted
+    }
+  }, [isMounted, notificationsEnabled, requestNotificationPermission]);
 
   useEffect(() => {
     if (status === 'running' && isMounted && !isRunning) {
@@ -213,6 +237,12 @@ export default function PomodoroTimer() {
               <Button onClick={handleStart}>Resume</Button>
             )}
             <Button onClick={handleReset} variant="outline">Reset</Button>
+            <Button
+              onClick={() => showNotification('Test Notification', 'This is a test notification from your Pomodoro Timer.')}
+              variant="secondary"
+            >
+              Test Notification
+            </Button>
           </div>
         </>
       </CardContent>

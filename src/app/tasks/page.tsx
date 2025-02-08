@@ -35,26 +35,9 @@ function SortableTask({ task, onToggle, onDelete }: {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: task.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
   return (
     <div
-      ref={setNodeRef}
-      style={style}
       className="flex items-center justify-between p-4 border rounded-lg cursor-move"
-      {...attributes}
-      {...listeners}
     >
       <div className="flex items-center gap-2">
         <Checkbox
@@ -68,7 +51,10 @@ function SortableTask({ task, onToggle, onDelete }: {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => onDelete(task.id)}
+        onClick={() => {
+          console.log('Simplified SortableTask: Delete button clicked for task ID:', task.id);
+          onDelete(task.id);
+        }}
       >
         <TrashIcon className="h-4 w-4" />
       </Button>
@@ -118,8 +104,15 @@ export default function TasksPage() {
   };
 
   const deleteTask = (taskId: string) => {
-    setTasks(prev => prev.filter(task => task.id !== taskId));
-    localStorageTasks[1](tasks.filter(task => task.id !== taskId));
+    console.log('deleteTask called for taskId:', taskId);
+    setTasks(prevTasks => {
+      console.log('Current tasks before deletion:', prevTasks);
+      const updatedTasks = prevTasks.filter(task => task.id !== taskId);
+      console.log('Updated tasks after deletion:', updatedTasks);
+      localStorageTasks[1](updatedTasks);
+      console.log('localStorage updated with:', updatedTasks);
+      return updatedTasks;
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
