@@ -62,6 +62,15 @@ export const TimerProvider = ({ children }: { children: React.ReactNode }) => {
                     setStatus('idle');
                     setTimerState(timerState === 'work' ? 'break' : 'work');
                     setTimeState(timerState === 'work' ? breakDuration : workDuration);
+                    // Show notification
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification(payload.title, {
+                            body: payload.body,
+                            icon: '/bell.png',
+                            tag: 'pomodoro-notification',
+                            requireInteraction: true
+                        });
+                    }
                     break;
             }
         };
