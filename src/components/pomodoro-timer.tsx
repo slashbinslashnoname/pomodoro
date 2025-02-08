@@ -237,12 +237,6 @@ export default function PomodoroTimer() {
               <Button onClick={handleStart}>Resume</Button>
             )}
             <Button onClick={handleReset} variant="outline">Reset</Button>
-            <Button
-              onClick={() => showNotification('Test Notification', 'This is a test notification from your Pomodoro Timer.')}
-              variant="secondary"
-            >
-              Test Notification
-            </Button>
           </div>
         </>
       </CardContent>
