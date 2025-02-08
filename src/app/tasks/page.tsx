@@ -107,6 +107,8 @@ export default function TasksPage() {
     })
   );
 
+  console.log('Sensors initialized:', sensors);
+
   const addTask = () => {
     if (newTaskText.trim()) {
       const newTask: Task = {
@@ -165,22 +167,23 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="container max-w-[550px] w-[550px] mx-auto p-4">
+    <div className="container max-w-full md:max-w-2xl lg:max-w-4xl w-full mx-auto p-4">
       <Card>
         <CardHeader>
           <CardTitle>Tasks</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-4 flex-col md:flex-row">
             <Input
               placeholder="Add a new task..."
               value={newTaskText}
               onChange={(e) => setNewTaskText(e.target.value)}
               onKeyPress={handleKeyPress}
+              className="w-full md:w-auto"
             />
             <Input
               placeholder="Category"
-              className="w-32"
+              className="w-32 md:w-auto"
               id="task-category"
             />
             <Button onClick={addTask}>Add</Button>

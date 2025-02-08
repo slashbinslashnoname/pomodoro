@@ -11,6 +11,9 @@ export function TopLeftNav() {
       <Link href="/tasks">
         <Button variant="outline">Tasks</Button>
       </Link>
+      <Link href="/imc">
+        <Button variant="outline">IMC</Button>
+      </Link>
     </nav>
   );
 }
