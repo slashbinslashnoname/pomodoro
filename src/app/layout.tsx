@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { TopLeftNav } from "@/components/top-left-nav";
 import { TimerProvider } from '@/context/timer-context';
+import { Toolbar } from '@/components/toolbar';
 
 const geist = Geist({
   subsets: ["latin"],
@@ -60,8 +61,14 @@ export default function RootLayout({
         >
           <TimerProvider>
             <main className="min-h-screen flex items-center justify-center bg-background">
-              <TopLeftNav />
+              <header>
+                <TopLeftNav />
+                <Toolbar />
+              </header>
+              <article>
               {children}
+              </article>
+             
             </main>
             <Toaster />
           </TimerProvider>

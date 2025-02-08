@@ -12,29 +12,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { History, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-interface SessionRecord {
-  type: 'work' | 'break';
-  startTime: Date;
-  endTime: Date;
-  duration: number;
-  completed: boolean;
-}
+import { SessionRecord } from "@/types";
 
 interface SessionHistoryProps {
   sessions: SessionRecord[];
-  onClearHistory?: () => void;
+  onClearHistory: () => void;
 }
 
 export function SessionHistory({ sessions, onClearHistory }: SessionHistoryProps) {
-  const formatTime = (date: string | Date) => {
-    const dateObj = date instanceof Date ? date : new Date(date);
-    return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
-    return `${minutes} min`;
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const getTotalWorkTime = () => {
@@ -71,42 +60,64 @@ export function SessionHistory({ sessions, onClearHistory }: SessionHistoryProps
           </div>
           
           <ScrollArea className="h-[300px] pr-4">
-            <div className="space-y-4">
-              {sessions.map((session, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+            {sessions.length === 0 ? (
+              <p className="text-center text-muted-foreground">No sessions recorded yet</p>
+            ) : (
+              <div className="space-y-4">
+                {sessions.map((session, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col space-y-1 rounded-lg border p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">
+                        {session.type === 'work' ? 'Work Session' : 'Break'}
+                      </span>
+                      <span className={`text-sm ${session.completed ? 'text-green-500' : 'text-red-500'}`}>
+                        {session.completed ? 'Completed' : 'Interrupted'}
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Duration: {formatDuration(session.duration)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {formatDistanceToNow(new Date(session.startTime), { addSuffix: true })}
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={onClearHistory}
                 >
-                  <div>
-                    <p className="font-medium">
-                      {session.type === 'work' ? '🎯 Work' : '☕ Break'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatTime(session.startTime)} - {formatTime(session.endTime)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">{formatDuration(session.duration)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {session.completed ? '✅ Completed' : '⏹️ Stopped'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  Clear History
+                </Button>
+              </div>
+            )}
           </ScrollArea>
         </div>
-        {sessions.length > 0 && (
-          <Button 
-            variant="destructive" 
-            size="icon"
-            onClick={onClearHistory}
-            title="Effacer l'historique"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function HistoryIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l4 2" />
+    </svg>
   );
 } 
