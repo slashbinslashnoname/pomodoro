@@ -1,5 +1,6 @@
 let duration = 0;
 let timerId: NodeJS.Timeout | null = null;
+let timerState: 'work' | 'break' = 'work';
 
 self.onmessage = (e) => {
   const { type, payload } = e.data;
@@ -8,6 +9,9 @@ self.onmessage = (e) => {
     case 'START':
       if (payload.duration) {
         duration = payload.duration;
+      }
+      if (payload.timerState) {
+        timerState = payload.timerState;
       }
       if (timerId) {
         clearInterval(timerId);
@@ -18,10 +22,13 @@ self.onmessage = (e) => {
         if (duration <= 0) {
           clearInterval(timerId);
           timerId = null;
-          postMessage({ type: 'COMPLETE', payload: {
-            title: "Session Complete",
-            body: "Time for a break!" // Or customize based on work/break
-          }});
+          const nextState = timerState === 'work' ? 'break' : 'work';
+          postMessage({
+            type: 'COMPLETE', payload: {
+              title: `${timerState === 'work' ? 'Work' : 'Break'} Session Complete`,
+              body: `Time for a ${nextState === 'work' ? 'work' : 'break'} session.`,
+            }
+          });
         }
       }, 1000);
       break;
@@ -39,6 +46,9 @@ self.onmessage = (e) => {
         timerId = null;
       }
       duration = payload.duration;
+      if (payload.timerState) {
+        timerState = payload.timerState;
+      }
       postMessage({ type: 'TICK', payload: duration });
       break;
   }

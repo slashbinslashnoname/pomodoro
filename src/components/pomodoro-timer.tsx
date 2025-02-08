@@ -58,7 +58,7 @@ export default function PomodoroTimer() {
     }
     workerRef.current?.postMessage({
       type: 'START',
-      payload: { duration: time }
+      payload: { duration: time, timerState }
     });
     startTimer();
   };
@@ -111,22 +111,23 @@ export default function PomodoroTimer() {
       }, ...prev]);
     }
 
-    setTimerState(newState);
-    setStatus('idle');
-
     sendNotification(
       `${timerState === 'work' ? 'Work' : 'Break'} session complete!`,
       `Time for a ${newState === 'work' ? 'work' : 'break'} session.`
     );
 
-    hasShownProgressNotification.current = false; // Reset the flag
+    hasShownProgressNotification.current = false;
 
-    if (newState === 'break') {
-      setTimeout(() => {
-        handleStart();
-      }, 500);
-    }
-  }, [timerState, workDuration, breakDuration, sendNotification, handleStart, setSessions, setTimerState, setStatus]);
+    setTimerState(newState);
+    setTime(newState === 'work' ? workDuration : breakDuration);
+    currentSessionStart.current = new Date();
+
+    workerRef.current?.postMessage({
+      type: 'START',
+      payload: { duration: newState === 'work' ? workDuration : breakDuration, timerState: newState }
+    });
+
+  }, [timerState, workDuration, breakDuration, sendNotification, setSessions, setTimerState, setTime]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -251,7 +252,7 @@ export default function PomodoroTimer() {
     setTime(timerState === 'work' ? workDuration : breakDuration);
     workerRef.current?.postMessage({
       type: 'RESET',
-      payload: { duration: timerState === 'work' ? workDuration : breakDuration }
+      payload: { duration: timerState === 'work' ? workDuration : breakDuration, timerState }
     });
     currentSessionStart.current = new Date();
   };
