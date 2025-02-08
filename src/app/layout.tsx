@@ -9,21 +9,21 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Pomodoro Timer by Slashbin",
+  title: "Pomodoro.love by Slashbin",
   description: "Boostez votre productivité avec ce Pomodoro Timer simple et efficace. Gérez votre temps de travail et de pause pour une meilleure concentration.",
   keywords: ['Pomodoro Timer', 'Productivité', 'Gestion du temps', 'Focus', 'Travail', 'Pause', 'Timer en ligne'],
   authors: [{ name: 'Slashbin' }],
   openGraph: {
-    title: 'Pomodoro Timer - Focus & Boost Productivity',
+    title: 'Pomodoro.love - Focus & Boost Productivity',
     description: 'Boostez votre productivité avec ce Pomodoro Timer simple et efficace.',
     url: 'https://pomodoro.love',
     siteName: 'Pomodoro Timer App',
     images: [
       {
-        url: '/bell.png',
+        url: '/twitter.png',
         width: 1200,
         height: 630,
-        alt: 'Pomodoro Timer App - Image de partage',
+        alt: 'Pomodoro.love',
       },
     ],
     locale: 'fr_FR',
