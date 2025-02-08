@@ -1,4 +1,4 @@
-let timeLeft = 0;
+let duration = 0;
 let timerId: NodeJS.Timeout | null = null;
 
 self.onmessage = (e) => {
@@ -7,18 +7,21 @@ self.onmessage = (e) => {
   switch (type) {
     case 'START':
       if (payload.duration) {
-        timeLeft = payload.duration;
+        duration = payload.duration;
       }
       if (timerId) {
         clearInterval(timerId);
       }
       timerId = setInterval(() => {
-        timeLeft--;
-        self.postMessage({ type: 'TICK', payload: timeLeft });
-        if (timeLeft <= 0) {
-          if (timerId) clearInterval(timerId);
+        duration--;
+        postMessage({ type: 'TICK', payload: duration });
+        if (duration <= 0) {
+          clearInterval(timerId);
           timerId = null;
-          self.postMessage({ type: 'COMPLETE' });
+          postMessage({ type: 'COMPLETE', payload: {
+            title: "Session Complete",
+            body: "Time for a break!" // Or customize based on work/break
+          }});
         }
       }, 1000);
       break;
@@ -35,8 +38,17 @@ self.onmessage = (e) => {
         clearInterval(timerId);
         timerId = null;
       }
-      timeLeft = payload.duration;
-      self.postMessage({ type: 'TICK', payload: timeLeft });
+      duration = payload.duration;
+      postMessage({ type: 'TICK', payload: duration });
       break;
   }
-}; 
+};
+
+// Example for a "20% remaining" notification (you'd need to add logic to trigger this)
+postMessage({
+  type: 'NOTIFICATION',
+  payload: {
+    title: '20% Remaining',
+    body: 'You have 20% of your time left.',
+  },
+}); 

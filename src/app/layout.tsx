@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { TopLeftNav } from "@/components/top-left-nav";
+import { TimerProvider } from '@/context/timer-context';
 
 const geist = Geist({
   subsets: ["latin"],
@@ -57,11 +58,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <main className="min-h-screen flex items-center justify-center bg-background">
-            <TopLeftNav />
-            {children}
-          </main>
-          <Toaster />
+          <TimerProvider>
+            <main className="min-h-screen flex items-center justify-center bg-background">
+              <TopLeftNav />
+              {children}
+            </main>
+            <Toaster />
+          </TimerProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,7 @@
 "use client";
 
-import { PomodoroTimer } from '@/components/pomodoro-timer';
+import React, { useEffect } from 'react';
+import PomodoroTimer from '@/components/pomodoro-timer';
 import { Toolbar } from '@/components/toolbar';
 
 export default function Home() {

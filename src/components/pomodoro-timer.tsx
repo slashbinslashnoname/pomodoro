@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SettingsDialog } from "./settings-dialog";
 import { SessionHistory } from "./session-history";
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useTimer } from '@/context/timer-context';
 
 type TimerState = 'work' | 'break';
 type TimerStatus = 'idle' | 'running' | 'paused';
@@ -20,44 +21,49 @@ interface SessionRecord {
   completed: boolean;
 }
 
-export function PomodoroTimer() {
-  // 1. Tous les états (useState et useRef)
-  const [workDuration, setWorkDuration] = useLocalStorage('workDuration', 25 * 60);
-  const [breakDuration, setBreakDuration] = useLocalStorage('breakDuration', 5 * 60);
+let workerInitialized = false;
+
+export default function PomodoroTimer() {
+  const {
+    time,
+    isRunning,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    workDuration,
+    breakDuration,
+    setWorkDuration,
+    setBreakDuration,
+    setTime,
+    status,
+    setStatus,
+    timerState,
+    setTimerState,
+  } = useTimer();
   const [sessions, setSessions] = useLocalStorage<SessionRecord[]>('sessions', []);
-  const [timeLeft, setTimeLeft] = useState(workDuration);
-  const [timerState, setTimerState] = useState<TimerState>('work');
-  const [status, setStatus] = useState<TimerStatus>('idle');
   const [isMounted, setIsMounted] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useLocalStorage('notificationsEnabled', false);
-
-  // Tous les useRef
   const workerRef = useRef<Worker | null>(null);
   const hasShownProgressNotification = useRef(false);
   const currentSessionStart = useRef<Date>(new Date());
   const { toast } = useToast();
 
-
-  const startTimer = () => {
+  const handleStart = () => {
+    console.log('handleStart function called');
     setStatus('running');
-    if (!currentSessionStart.current) {
-      currentSessionStart.current = new Date();
+    currentSessionStart.current = new Date();
+    if (status === 'idle') {
+      setTime(timerState === 'work' ? workDuration : breakDuration);
+      console.log('handleStart - setTime called with:', timerState === 'work' ? workDuration : breakDuration);
     }
     workerRef.current?.postMessage({
       type: 'START',
-      payload: { duration: timeLeft }
+      payload: { duration: time }
     });
+    startTimer();
   };
 
-  const sendNotification = useCallback((title: string, body: string) => {
-    if (!notificationsEnabled) {
-      toast({
-        title,
-        description: body,
-      });
-      return;
-    }
-
+  const showNotification = useCallback((title: string, body: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
         const notification = new window.Notification(title, {
@@ -75,17 +81,26 @@ export function PomodoroTimer() {
         console.error('Error creating notification:', error);
       }
     }
-
     toast({
       title,
       description: body,
     });
-  }, [notificationsEnabled, toast]);
+  }, [toast]);
+
+  const sendNotification = useCallback((title: string, body: string) => {
+    if (!notificationsEnabled) {
+      toast({
+        title,
+        description: body,
+      });
+      return;
+    }
+    showNotification(title, body);
+  }, [notificationsEnabled, showNotification, toast]);
 
   const handleSessionComplete = useCallback(() => {
     const newState = timerState === 'work' ? 'break' : 'work';
-    
-    // Enregistrer la session terminée
+
     if (currentSessionStart.current) {
       setSessions(prev => [{
         type: timerState,
@@ -98,43 +113,60 @@ export function PomodoroTimer() {
 
     setTimerState(newState);
     setStatus('idle');
-    setTimeLeft(newState === 'work' ? workDuration : breakDuration);
-    currentSessionStart.current = new Date();
-    
-    // Notification de fin de session
+
     sendNotification(
       `${timerState === 'work' ? 'Work' : 'Break'} session complete!`,
       `Time for a ${newState === 'work' ? 'work' : 'break'} session.`
     );
 
-    toast({
-      title: `${timerState === 'work' ? 'Work' : 'Break'} session complete!`,
-      description: `Time for a ${newState === 'work' ? 'work' : 'break'} session.`,
-    });
-    
-    hasShownProgressNotification.current = false;
+    hasShownProgressNotification.current = false; // Reset the flag
 
-    // Démarrer automatiquement la pause
     if (newState === 'break') {
       setTimeout(() => {
-        startTimer();
-      }, 500); // Petit délai pour laisser le temps à l'interface de se mettre à jour
+        handleStart();
+      }, 500);
     }
-  }, [timerState, workDuration, breakDuration, toast, sendNotification]);
-  
+  }, [timerState, workDuration, breakDuration, sendNotification, handleStart, setSessions, setTimerState, setStatus]);
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !workerInitialized) {
+      console.log('PomodoroTimer: useEffect - window is defined, about to create worker');
       workerRef.current = new Worker(new URL('../lib/timer.worker.ts', import.meta.url));
-      
+      console.log('PomodoroTimer: useEffect - worker created', workerRef.current);
+      workerInitialized = true;
+
+      workerRef.current.onerror = (error) => {
+        console.error('Worker error:', error);
+      };
+
       workerRef.current.onmessage = (e) => {
         const { type, payload } = e.data;
-        
+        console.log('Main thread received message:', type, payload);
+
         switch (type) {
           case 'TICK':
-            setTimeLeft(payload);
+            setTime(payload);
             break;
           case 'COMPLETE':
             handleSessionComplete();
+            if (payload && payload.title && payload.body) {
+              toast({
+                title: payload.title,
+                description: payload.body,
+              });
+            }
+            break;
+          case 'NOTIFICATION':
+            if (payload && payload.title && payload.body) {
+              toast({
+                title: payload.title,
+                description: payload.body,
+              });
+            }
             break;
         }
       };
@@ -143,52 +175,51 @@ export function PomodoroTimer() {
         workerRef.current?.terminate();
       };
     }
-  }, [handleSessionComplete]);
-
-  const handleWorkDurationChange = useCallback((newDuration: number) => {
-    setWorkDuration(newDuration);
-    if (timerState === 'work' && status === 'idle') {
-      setTimeLeft(newDuration);
+    if (status === 'running' && isMounted && !isRunning) {
+      console.log('PomodoroTimer: useEffect - status is running, restarting timer');
+      handleStart();
     }
-  }, [timerState, status, setWorkDuration]);
+  }, [status, isMounted, setTime, isRunning, handleSessionComplete, handleStart]);
 
-  const handleBreakDurationChange = useCallback((newDuration: number) => {
-    setBreakDuration(newDuration);
-    if (timerState === 'break' && status === 'idle') {
-      setTimeLeft(newDuration);
-    }
-  }, [timerState, status, setBreakDuration]);
+  const handleDurationChange = useCallback(
+    (newDuration: number, setDuration: (duration: number) => void) => {
+      setDuration(newDuration);
+      resetTimer();
+      setTime(newDuration);
+    },
+    [resetTimer, setTime]
+  );
 
-  // 3. Tous les useEffect
-  useEffect(() => {
-    setIsMounted(true);
-    setTimeLeft(workDuration);
-  }, [workDuration]);
+  const handleWorkDurationChange = useCallback(
+    (newDuration: number) => handleDurationChange(newDuration, setWorkDuration),
+    [handleDurationChange, setWorkDuration]
+  );
 
-  // Ajouter l'effet pour les notifications
-  useEffect(() => {
-    // Notification 5 secondes avant la fin de la pause
-    if (timerState === 'break' && timeLeft === 5 && status === 'running') {
+  const handleBreakDurationChange = useCallback(
+    (newDuration: number) => handleDurationChange(newDuration, setBreakDuration),
+    [handleDurationChange, setBreakDuration]
+  );
+
+    useEffect(() => {
+    if (timerState === 'break' && time === 5 && status === 'running') {
       sendNotification(
         'Break ending soon!',
         'Your break will end in 5 seconds. Get ready to work!'
       );
     }
 
-    // Vérifier si on a atteint 20% du temps
     const totalDuration = timerState === 'work' ? workDuration : breakDuration;
     const threshold = totalDuration * 0.2;
-    
-    if (timeLeft <= threshold && !hasShownProgressNotification.current && status === 'running') {
+
+    if (time <= threshold && !hasShownProgressNotification.current && status === 'running') {
       sendNotification(
         '20% of time remaining!',
-        `${timeLeft} seconds left in your ${timerState} session.`
+        `${time} seconds left in your ${timerState} session.`
       );
       hasShownProgressNotification.current = true;
     }
-  }, [timeLeft, timerState, workDuration, breakDuration, status, sendNotification]);
+  }, [time, timerState, workDuration, breakDuration, status, sendNotification]);
 
-  // 4. Early return pour le montage
   if (!isMounted) {
     return (
       <Card className="w-[350px]">
@@ -205,34 +236,23 @@ export function PomodoroTimer() {
     );
   }
 
-  // 5. Fonctions régulières
-  
-  const pauseTimer = () => {
-    setStatus('paused');
-    workerRef.current?.postMessage({ type: 'PAUSE' });
-  };
-
-  const resetTimer = () => {
-    setStatus('idle');
-    const duration = timerState === 'work' ? workDuration : breakDuration;
-    setTimeLeft(duration);
-    workerRef.current?.postMessage({
-      type: 'RESET',
-      payload: { duration }
-    });
-  };
-
   const handleReset = () => {
     if (status !== 'idle' && currentSessionStart.current) {
       setSessions(prev => [{
         type: timerState,
         startTime: currentSessionStart.current!,
         endTime: new Date(),
-        duration: (timerState === 'work' ? workDuration : breakDuration) - timeLeft,
+        duration: (timerState === 'work' ? workDuration : breakDuration) - time,
         completed: false
       }, ...prev]);
     }
     resetTimer();
+    setStatus('idle');
+    setTime(timerState === 'work' ? workDuration : breakDuration);
+    workerRef.current?.postMessage({
+      type: 'RESET',
+      payload: { duration: timerState === 'work' ? workDuration : breakDuration }
+    });
     currentSessionStart.current = new Date();
   };
 
@@ -242,11 +262,9 @@ export function PomodoroTimer() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 6. Variables calculées
-  const progress = ((timerState === 'work' ? workDuration : breakDuration) - timeLeft) / 
+  const progress = ((timerState === 'work' ? workDuration : breakDuration) - time) /
                    (timerState === 'work' ? workDuration : breakDuration) * 100;
 
-  // 7. JSX
   return (
     <Card className="w-[350px]">
       <CardHeader>
@@ -266,24 +284,26 @@ export function PomodoroTimer() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="text-6xl font-bold text-center">
-          {formatTime(timeLeft)}
-        </div>
-        
-        <Progress value={progress} className="h-2" />
-        
-        <div className="flex justify-center gap-4">
-          {status === 'idle' && (
-            <Button onClick={startTimer}>Start</Button>
-          )}
-          {status === 'running' && (
-            <Button onClick={pauseTimer} variant="secondary">Pause</Button>
-          )}
-          {status === 'paused' && (
-            <Button onClick={startTimer}>Resume</Button>
-          )}
-          <Button onClick={handleReset} variant="outline">Reset</Button>
-        </div>
+        <>
+          <div className="text-6xl font-bold text-center">
+            {formatTime(time)}
+          </div>
+
+          <Progress value={progress} className="h-2" />
+
+          <div className="flex justify-center gap-4">
+            {status === 'idle' && (
+              <Button onClick={handleStart}>Start</Button>
+            )}
+            {status === 'running' && (
+              <Button onClick={() => { pauseTimer(); setStatus('paused'); }} variant="secondary">Pause</Button>
+            )}
+            {status === 'paused' && (
+              <Button onClick={handleStart}>Resume</Button>
+            )}
+            <Button onClick={handleReset} variant="outline">Reset</Button>
+          </div>
+        </>
       </CardContent>
     </Card>
   );
