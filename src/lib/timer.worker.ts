@@ -1,5 +1,5 @@
 let duration = 0;
-let timerId: NodeJS.Timeout | null = null;
+let timerId: number | null | NodeJS.Timeout = null;
 let timerState: 'work' | 'break' = 'work';
 
 self.onmessage = (e) => {
@@ -20,7 +20,9 @@ self.onmessage = (e) => {
         duration--;
         postMessage({ type: 'TICK', payload: duration });
         if (duration <= 0) {
-          clearInterval(timerId);
+          if (timerId) {
+            clearInterval(timerId);
+          }
           timerId = null;
           const nextState = timerState === 'work' ? 'break' : 'work';
           postMessage({
@@ -54,11 +56,3 @@ self.onmessage = (e) => {
   }
 };
 
-// Example for a "20% remaining" notification (you'd need to add logic to trigger this)
-postMessage({
-  type: 'NOTIFICATION',
-  payload: {
-    title: '20% Remaining',
-    body: 'You have 20% of your time left.',
-  },
-}); 
