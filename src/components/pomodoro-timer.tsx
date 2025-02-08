@@ -201,7 +201,7 @@ export default function PomodoroTimer() {
                    (timerState === 'work' ? workDuration : breakDuration) * 100;
 
   return (
-    <Card className="w-[350px]">
+    <Card className="w-[350px] mx-auto container">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-center flex-1">

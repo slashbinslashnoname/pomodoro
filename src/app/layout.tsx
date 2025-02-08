@@ -52,6 +52,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
       <body className={geist.className}>
         <ThemeProvider
           attribute="class"
@@ -65,7 +68,7 @@ export default function RootLayout({
                 <TopLeftNav />
                 <Toolbar />
               </header>
-              <article>
+              <article className="w-full">
               {children}
               </article>
              
