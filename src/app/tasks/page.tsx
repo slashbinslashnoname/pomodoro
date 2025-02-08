@@ -22,6 +22,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Badge } from "@/components/ui/badge"
 
 interface Task {
   id: string;
@@ -36,9 +37,28 @@ function SortableTask({ task, onToggle, onDelete }: {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  console.log('SortableTask rendered for task ID:', task.id);
+
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className="flex items-center justify-between p-4 border rounded-lg cursor-move"
+      {...attributes}
+      {...listeners}
     >
       <div className="flex items-center gap-2">
         <Checkbox
@@ -49,9 +69,12 @@ function SortableTask({ task, onToggle, onDelete }: {
           {task.text}
         </span>
         {task.category && (
-          <span className="ml-2 text-sm text-muted-foreground">
-            ({task.category})
-          </span>
+          <Badge
+            variant="secondary"
+            className="ml-2 text-sm"
+          >
+            {task.category}
+          </Badge>
         )}
       </div>
       <Button
@@ -132,6 +155,8 @@ export default function TasksPage() {
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
 
+    console.log('handleDragEnd called', { active, over });
+
     if (active.id !== over.id) {
       const updatedTasks = arrayMove(tasks, tasks.findIndex((task) => task.id === active.id), tasks.findIndex((task) => task.id === over.id));
       setTasks(updatedTasks);
@@ -154,7 +179,7 @@ export default function TasksPage() {
               onKeyPress={handleKeyPress}
             />
             <Input
-              placeholder="Category (optional)"
+              placeholder="Category"
               className="w-32"
               id="task-category"
             />
