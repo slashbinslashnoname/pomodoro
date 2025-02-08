@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { TopLeftNav } from "@/components/top-left-nav";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -56,7 +57,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <main className="min-h-screen flex items-center justify-center bg-background">
+            <TopLeftNav />
+            {children}
+          </main>
           <Toaster />
         </ThemeProvider>
       </body>
