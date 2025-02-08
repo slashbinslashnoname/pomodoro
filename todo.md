@@ -26,10 +26,14 @@ Shadcn UI
 - [x] Component tasks to manage a list of tasks.
     - [x] Add tasks
     - [x] Delete tasks
-    - [ ] Mark tasks as complete
-
+    - [x] Mark tasks as complete
+    - [x] Drag and drop tasks
+    - [x] Save tasks in localstorage
+    - [x] Load tasks from localstorage
+    - [x] Clear all tasks
+    - [x] Count tasks
+    - [x] Count completed tasks
+    - [ ] Count total time spent on tasks
 ## Idées futures
 - [x] Thèmes personnalisables (mode sombre / clair).
-- [ ] Synchronisation avec un calendrier pour planifier les sessions.
-- [ ] Intégration avec d'autres outils de gestion de temps ou de notifications (ex : Slack).
-- [ ] Amélioration du SEO (balises sémantiques, métadonnées). 
+- [x] Amélioration du SEO (balises sémantiques, métadonnées). 

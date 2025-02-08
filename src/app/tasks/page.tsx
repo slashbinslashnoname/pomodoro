@@ -28,6 +28,7 @@ interface Task {
   text: string;
   completed: boolean;
   createdAt: Date;
+  category?: string;
 }
 
 function SortableTask({ task, onToggle, onDelete }: {
@@ -47,6 +48,11 @@ function SortableTask({ task, onToggle, onDelete }: {
         <span className={task.completed ? 'line-through text-muted-foreground' : ''}>
           {task.text}
         </span>
+        {task.category && (
+          <span className="ml-2 text-sm text-muted-foreground">
+            ({task.category})
+          </span>
+        )}
       </div>
       <Button
         variant="ghost"
@@ -85,10 +91,12 @@ export default function TasksPage() {
         text: newTaskText.trim(),
         completed: false,
         createdAt: new Date(),
+        category: (document.getElementById('task-category') as HTMLInputElement)?.value.trim() || undefined,
       };
       setTasks(prev => [newTask, ...prev]);
       localStorageTasks[1]([newTask, ...tasks]);
       setNewTaskText('');
+      (document.getElementById('task-category') as HTMLInputElement).value = '';
     }
   };
 
@@ -132,7 +140,7 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto p-4">
+    <div className="container max-w-[550px] w-[550px] mx-auto p-4">
       <Card>
         <CardHeader>
           <CardTitle>Tasks</CardTitle>
@@ -144,6 +152,11 @@ export default function TasksPage() {
               value={newTaskText}
               onChange={(e) => setNewTaskText(e.target.value)}
               onKeyPress={handleKeyPress}
+            />
+            <Input
+              placeholder="Category (optional)"
+              className="w-32"
+              id="task-category"
             />
             <Button onClick={addTask}>Add</Button>
           </div>
