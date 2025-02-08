@@ -6,22 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Badge } from "@/components/ui/badge"
 
 interface Task {
@@ -37,28 +21,9 @@ function SortableTask({ task, onToggle, onDelete }: {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: task.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  console.log('SortableTask rendered for task ID:', task.id);
-
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center justify-between p-4 border rounded-lg cursor-move"
-      {...attributes}
-      {...listeners}
+      className="flex items-center justify-between p-4 border rounded-lg"
     >
       <div className="flex items-center gap-2">
         <Checkbox
@@ -80,9 +45,11 @@ function SortableTask({ task, onToggle, onDelete }: {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => {
+        onClick={(event) => {
           console.log('Simplified SortableTask: Delete button clicked for task ID:', task.id);
+          console.log('onDelete callback in SortableTask called with ID:', task.id);
           onDelete(task.id);
+          event.stopPropagation();
         }}
       >
         <TrashIcon className="h-4 w-4" />
@@ -99,15 +66,6 @@ export default function TasksPage() {
   useEffect(() => {
     setTasks(localStorageTasks[0] || []);
   }, [localStorageTasks]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  console.log('Sensors initialized:', sensors);
 
   const addTask = () => {
     if (newTaskText.trim()) {
@@ -138,6 +96,7 @@ export default function TasksPage() {
 
   const deleteTask = (taskId: string) => {
     console.log('deleteTask called for taskId:', taskId);
+    console.log('deleteTask taskId received:', taskId);
     setTasks(prevTasks => {
       console.log('Current tasks before deletion:', prevTasks);
       const updatedTasks = prevTasks.filter(task => task.id !== taskId);
@@ -151,18 +110,6 @@ export default function TasksPage() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       addTask();
-    }
-  };
-
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event;
-
-    console.log('handleDragEnd called', { active, over });
-
-    if (active.id !== over.id) {
-      const updatedTasks = arrayMove(tasks, tasks.findIndex((task) => task.id === active.id), tasks.findIndex((task) => task.id === over.id));
-      setTasks(updatedTasks);
-      localStorageTasks[1](updatedTasks);
     }
   };
 
@@ -193,25 +140,14 @@ export default function TasksPage() {
             {tasks.length === 0 ? (
               <p className="text-center text-muted-foreground">No tasks yet</p>
             ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={tasks}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {tasks.map((task) => (
-                    <SortableTask
-                      key={task.id}
-                      task={task}
-                      onToggle={toggleTask}
-                      onDelete={deleteTask}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
+              tasks.map((task) => (
+                <SortableTask
+                  key={task.id}
+                  task={task}
+                  onToggle={toggleTask}
+                  onDelete={deleteTask}
+                />
+              ))
             )}
           </div>
         </CardContent>
