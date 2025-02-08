@@ -23,6 +23,10 @@ Shadcn UI
 - [x] Bouton pour activer/désactiver les notifications qui active ou désactive les notifications de bureau.
 - [x] Sauvegarde les sessions et les paramètres dans le localstorage pour ne pas perdre les données lorsque le navigateur est fermé.
 - [x] Bouton pour activer/désactiver le mode sombre.
+- [x] Component tasks to manage a list of tasks.
+    - [x] Add tasks
+    - [x] Delete tasks
+    - [ ] Mark tasks as complete
 
 ## Idées futures
 - [x] Thèmes personnalisables (mode sombre / clair).

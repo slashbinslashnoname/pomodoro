@@ -2,9 +2,10 @@
 import React, {
     createContext,
     useContext,
-    // useState,
+    useState,
     useEffect,
     useCallback,
+    useRef,
 } from 'react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 
@@ -12,95 +13,120 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 interface TimerContextType {
     time: number;
     isRunning: boolean;
-    timerState: 'work' | 'break';
-    status: 'idle' | 'running' | 'paused';
+    status: TimerStatus;
+    timerState: TimerState;
     workDuration: number;
     breakDuration: number;
+    setTime: (time: number) => void;
     startTimer: () => void;
     pauseTimer: () => void;
     resetTimer: () => void;
     setWorkDuration: (duration: number) => void;
     setBreakDuration: (duration: number) => void;
-    setTime: (time: number) => void;
-    setTimerState: (timerState: 'work' | 'break') => void;
-    setStatus: (status: 'idle' | 'running' | 'paused') => void;
+    setStatus: (status: TimerStatus) => void;
+    setTimerState: (timerState: TimerState) => void;
+    setTimeState: React.Dispatch<React.SetStateAction<number>>;
+    setIsRunning: React.Dispatch<React.SetStateAction<boolean>>;
 }
+
+type TimerState = 'work' | 'break';
+type TimerStatus = 'idle' | 'running' | 'paused';
 
 // Create the Timer Context
 const TimerContext = createContext<TimerContextType | undefined>(undefined);
 
 // Create the Timer Provider
 export const TimerProvider = ({ children }: { children: React.ReactNode }) => {
-    const [time, setTimeState] = useLocalStorage('time', 25 * 60);
-    const [isRunning, setIsRunning] = useLocalStorage('isRunning', false);
-    const [timerState, setTimerState] = useLocalStorage<'work' | 'break'>('timerState', 'work');
-    const [status, setStatus] = useLocalStorage<'idle' | 'running' | 'paused'>('status', 'idle');
-    const [workDuration, setWorkDuration] = useLocalStorage('workDuration', 25 * 60);
-    const [breakDuration, setBreakDuration] = useLocalStorage('breakDuration', 5 * 60);
+    const [time, setTimeState] = useState<number>(1500); // 25 minutes
+    const [isRunning, setIsRunning] = useState<boolean>(false);
+    const [status, setStatus] = useState<TimerStatus>('idle');
+    const [timerState, setTimerState] = useState<TimerState>('work');
+    const [workDuration, setWorkDuration] = useLocalStorage('workDuration', 1500); // 25 minutes
+    const [breakDuration, setBreakDuration] = useLocalStorage('breakDuration', 300); // 5 minutes
+    const workerRef = useRef<Worker | null>(null); // Ref for worker
+
+    useEffect(() => {
+        // Initialize worker on component mount
+        workerRef.current = new Worker(new URL('../lib/timer.worker.js', import.meta.url), {
+            type: 'module'
+        });
+
+        workerRef.current.onmessage = (e) => {
+            const { type, payload } = e.data;
+            switch (type) {
+                case 'TICK':
+                    setTimeState(payload);
+                    break;
+                case 'COMPLETE':
+                    setIsRunning(false);
+                    setStatus('idle');
+                    setTimerState(timerState === 'work' ? 'break' : 'work');
+                    setTimeState(timerState === 'work' ? breakDuration : workDuration);
+                    break;
+            }
+        };
+
+        workerRef.current.onerror = (error) => {
+            console.error('Worker error:', error);
+            console.error('Worker error (full):', error);
+        };
+
+        // Terminate worker on unmount
+        return () => {
+            workerRef.current?.terminate();
+        };
+    }, [timerState, workDuration, breakDuration, setIsRunning, setStatus, setTimerState, setTimeState]);
 
     const setTime = useCallback((newTime: number) => {
-        console.log('TimerContext: setTime called with:', newTime);
         setTimeState(newTime);
-    }, [setTimeState]);
+    }, []);
 
     const startTimer = useCallback(() => {
         setIsRunning(true);
         setStatus('running');
-    }, [setIsRunning, setStatus]);
+        workerRef.current?.postMessage({
+            type: 'START',
+            payload: { duration: time, timerState }
+        });
+    }, [isRunning, status, time, timerState, setIsRunning, setStatus]);
 
     const pauseTimer = useCallback(() => {
         setIsRunning(false);
         setStatus('paused');
+        workerRef.current?.postMessage({ type: 'PAUSE' });
     }, [setIsRunning, setStatus]);
 
     const resetTimer = useCallback(() => {
         setIsRunning(false);
         setStatus('idle');
-        setTime(timerState === 'work' ? workDuration : breakDuration);
-    }, [timerState, workDuration, breakDuration, setTime, setIsRunning, setStatus]);
+        workerRef.current?.postMessage({
+            type: 'RESET',
+            payload: { duration: timerState === 'work' ? workDuration : breakDuration, timerState }
+        });
+        setTimeState(timerState === 'work' ? workDuration : breakDuration);
+    }, [timerState, workDuration, breakDuration, setIsRunning, setStatus, setTimeState]);
 
-    // Timer logic using useEffect
     useEffect(() => {
-        let intervalId: NodeJS.Timeout | null = null;
-
-        if (isRunning && status === 'running') {
-            intervalId = setInterval(() => {
-                setTimeState((prevTime) => {
-                    if (prevTime <= 0) {
-                        if (intervalId) clearInterval(intervalId);
-                        setIsRunning(false);
-                        setStatus('idle');
-                        // Switch between work and break
-                        setTimerState(timerState === 'work' ? 'break' : 'work');
-                        return timerState === 'work' ? breakDuration : workDuration;
-                    }
-                    return prevTime - 1;
-                });
-            }, 1000);
-        }
-
-        return () => {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
-        };
-    }, [isRunning, status, timerState, workDuration, breakDuration, setTimeState, setIsRunning, setStatus, setTimerState]);
+        setTimeState(timerState === 'work' ? workDuration : breakDuration);
+    }, [timerState, workDuration, breakDuration]);
 
     const contextValue: TimerContextType = {
         time,
         isRunning,
-        timerState,
         status,
+        timerState,
         workDuration,
         breakDuration,
+        setTime,
         startTimer,
         pauseTimer,
         resetTimer,
         setWorkDuration,
         setBreakDuration,
-        setTime,
-        setTimerState,
         setStatus,
+        setTimerState,
+        setTimeState,
+        setIsRunning,
     };
 
     return (
