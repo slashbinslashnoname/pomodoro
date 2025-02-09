@@ -11,9 +11,10 @@ export function TopLeftNav() {
       <Link href="/tasks">
         <Button variant="outline">Tasks</Button>
       </Link>
-      <Link href="/imc">
-        <Button variant="outline">IMC</Button>
+      <Link href="/qr-code">
+        <Button variant="outline">QR Code Scanner</Button>
       </Link>
+     
     </nav>
   );
 }
