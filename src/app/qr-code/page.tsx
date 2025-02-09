@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import * as QRCode from 'qrcode.react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,11 @@ export default function QRCodePage() {
       navigator.clipboard.writeText(scannedValue)
         .then(() => console.log('Scanned value copied to clipboard'))
         .catch(err => console.error('Failed to copy scanned value to clipboard:', err));
+    } else {
+      console.error('No QR code detected');
+      navigator.clipboard.writeText(defaultBitcoinAddress)
+      .then(() => console.log('Scanned value copied to clipboard'))
+      .catch(err => console.error('Failed to copy scanned value to clipboard:', err));
     }
   };
 
