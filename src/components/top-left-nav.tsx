@@ -11,8 +11,8 @@ export function TopLeftNav() {
       <Link href="/tasks">
         <Button variant="outline">Tasks</Button>
       </Link>
-      <Link href="/qr-code">
-        <Button variant="outline">QR Code Scanner</Button>
+      <Link href="https://bitcoin-qrcode.vercel.app">
+        <Button variant="outline">QR Code</Button>
       </Link>
      
     </nav>
